@@ -1,0 +1,45 @@
+.review-card{
+    background:#111;
+    color:#fff;
+    border:none;
+    border-radius:15px;
+    text-align:center;
+    padding:20px;
+    transition:.3s;
+    height:100%;
+}
+
+.review-card:hover{
+    transform:translateY(-8px);
+    box-shadow:0 10px 25px rgba(255,193,7,.2);
+}
+
+.review-img{
+    width:90px;
+    height:90px;
+    border-radius:50%;
+    object-fit:cover;
+    border:3px solid #ffc107;
+    margin-bottom:15px;
+}
+
+.review-card h5{
+    margin-bottom:5px;
+    font-weight:700;
+}
+
+.review-card small{
+    color:#999;
+}
+
+.review-card p{
+    color:#d1d5db;
+    margin-top:15px;
+    line-height:1.7;
+}
+
+.stars{
+    color:#ffc107;
+    margin:12px 0;
+    font-size:18px;
+}

@@ -1,0 +1,24 @@
+.category-card{
+    text-align:center;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.category-card img{
+    width:140px;
+    height:140px;
+    border-radius:50%;
+    object-fit:cover;
+    border:3px solid #ffc107;
+    transition:.3s;
+}
+
+.category-card:hover img{
+    transform:scale(1.08);
+}
+
+.category-card h6{
+    color:#fff;
+    margin-top:15px;
+    font-weight:600;
+}

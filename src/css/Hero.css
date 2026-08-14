@@ -1,0 +1,30 @@
+.hero-slider,
+.offer-card{
+    height:300px;
+    overflow:hidden;
+    border-radius:15px;
+}
+
+.hero-slider img,
+.offer-card img{
+    height:300px;
+    object-fit:cover;
+}
+
+.overlay {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 40px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.overlay h1{
+    font-size:3rem;
+    font-weight:700;
+}
+
+.overlay h3{
+    font-weight:700;
+}
