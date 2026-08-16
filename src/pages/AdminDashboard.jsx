@@ -1,7 +1,7 @@
 // pages/AdminDashboard.jsx
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { 
+import {
   FaUsers, FaBox, FaShoppingCart, FaDollarSign,
   FaChartLine, FaPlus, FaEye, FaEdit, FaTrash,
   FaUserCog, FaClipboardList, FaHome
@@ -19,36 +19,219 @@ function AdminDashboard() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [deletingProduct, setDeletingProduct] = useState(null);
 
-  // ✅ PRODUCTS STATE (with all fields)
-  const [products, setProducts] = useState([
-    { 
-      id: 1, 
-      name: "Wireless Headphones", 
-      description: "High quality wireless headphones",
-      price: 199.99, 
-      stock: 45, 
-      image: "https://tse4.mm.bing.net/th/id/OIP.TI_BJL9G8bDCEIbETmXWzQHaHa?r=0&pid=Api&h=220&P=0100",
-      category: "Electronics"
-    },
-    { 
-      id: 2, 
-      name: "Smart Watch", 
-      description: "Latest smart watch with health features",
-      price: 299.99, 
-      stock: 12, 
-      image: "https://www.skg.com/cdn/shop/products/skg-v7-pro-smart-watch-with-alexa-built-in-bluetooth-callanswermake-call-604781.jpg?v=1677051256&width=100",
-      category: "Electronics"
-    },
-    { 
-      id: 3, 
-      name: "Phone Case", 
-      description: "Premium leather phone case",
-      price: 29.99, 
-      stock: 0, 
-      image: "https://i5.walmartimages.com/seo/Coquette-Bow-Phone-Case-for-iPhone-11-Cute-Pink-Ribbon-Bow-Aesthetic-Case-for-Women-Girls-with-Bracelet-Chain-Pink_d2dc96d9-f645-423f-a153-ad7518b280a1.61966cdefdad0568f0c621d4320d1280.jpeg?w=100",
-      category: "Accessories"
+  // ✅ PRODUCTS STATE
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // ✅ GET ALL PRODUCTS
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/getAllProducts', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      console.log('📦 Fetch Response:', data); // ✅ DEBUG
+      
+      if (response.ok) {
+        // ✅ SAFE ACCESS
+        const productList = data.products || data.data || [];
+        setProducts(productList);
+      } else {
+        console.error('Failed to fetch products:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }, []);
+    useEffect(() => {
+    fetchProducts();
+  },[fetchProducts]);
+
+  // ✅ CREATE PRODUCT - FIXED
+  const createProduct = async (saveData, imageFiles) => {
+    try {
+      const formData = new FormData();
+      
+      Object.keys(saveData).forEach(key => {
+        formData.append(key, saveData[key]);
+      });
+      
+      if (imageFiles && imageFiles.length > 0) {
+        imageFiles.forEach(file => {
+          formData.append('images', file);
+        });
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/createProduct', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      console.log('📦 Create Response:', data); // ✅ DEBUG
+
+      if (response.ok) {
+        // ✅ SAFE ACCESS - Check multiple response structures
+        const newProduct = data.product || data.data;
+        
+        if (newProduct && newProduct._id) {
+          setProducts(prev => [...prev, newProduct]);
+          alert('✅ Product created successfully!');
+          return true;
+        } else {
+          // ✅ Agar product object nahi aaya toh bhi success
+          console.warn('⚠️ Product created but no product object in response');
+          alert('✅ Product created successfully! (Refresh to see)');
+          await fetchProducts(); // ✅ Refresh list
+          return true;
+        }
+      } else {
+        alert(data.message || 'Failed to create product');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error creating product:', error);
+      alert('Something went wrong!');
+      return false;
+    }
+  };
+
+  // ✅ UPDATE PRODUCT - FIXED
+  const updateProduct = async (id, saveData, imageFiles) => {
+    try {
+      const formData = new FormData();
+      
+      Object.keys(saveData).forEach(key => {
+        formData.append(key, saveData[key]);
+      });
+      
+      if (imageFiles && imageFiles.length > 0) {
+        imageFiles.forEach(file => {
+          formData.append('images', file);
+        });
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/updateProduct/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+      console.log('📦 Update Response:', data); // ✅ DEBUG
+
+      if (response.ok) {
+        const updatedProduct = data.product || data.data;
+        if (updatedProduct && updatedProduct._id) {
+          setProducts(prev => prev.map(p => 
+            p._id === id ? updatedProduct : p
+          ));
+        }
+        alert('✅ Product updated successfully!');
+        return true;
+      } else {
+        alert(data.message || 'Failed to update product');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error updating product:', error);
+      alert('Something went wrong!');
+      return false;
+    }
+  };
+
+  // ✅ DELETE PRODUCT - FIXED
+  const deleteProduct = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/deleteProduct/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      console.log('📦 Delete Response:', data); // ✅ DEBUG
+
+      if (response.ok) {
+        setProducts(prev => prev.filter(p => p._id !== id));
+        alert('✅ Product deleted successfully!');
+        return true;
+      } else {
+        alert(data.message || 'Failed to delete product');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Something went wrong!');
+      return false;
+    }
+  };
+
+  // ✅ HANDLE SAVE
+  const handleSaveProduct = async (saveData, imageFiles) => {
+    console.log('💾 Saving product:', saveData, imageFiles); // ✅ DEBUG
+    
+    let success = false;
+    console.log(success);
+    if (editingProduct && editingProduct._id) {
+      success = await updateProduct(editingProduct._id, saveData, imageFiles);
+    } else {
+      success = await createProduct(saveData, imageFiles);
+    }
+    
+    if (success) {
+      setIsProductModalOpen(false);
+      setEditingProduct(null);
+      await fetchProducts();
+    }
+  };
+
+  // ✅ HANDLE DELETE
+  const handleDeleteClick = (product) => {
+    if (product && product._id) {
+      setDeletingProduct(product);
+      setIsDeleteModalOpen(true);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (deletingProduct && deletingProduct._id) {
+      await deleteProduct(deletingProduct._id);
+      setIsDeleteModalOpen(false);
+      setDeletingProduct(null);
+    }
+  };
+
+  // ✅ HANDLE EDIT
+  const handleEditClick = (product) => {
+    if (product) {
+      setEditingProduct(product);
+      setIsProductModalOpen(true);
+    }
+  };
+
+  // ✅ HANDLE ADD
+  const handleAddClick = () => {
+    setEditingProduct(null);
+    setIsProductModalOpen(true);
+  };
 
   // Stats Data
   const stats = [
@@ -79,55 +262,6 @@ function AdminDashboard() {
     return colors[status] || "secondary";
   };
 
-  // ✅ HANDLERS
-
-  // Open Add Modal
-  const handleAddProduct = () => {
-    setEditingProduct(null);
-    setIsProductModalOpen(true);
-  };
-
-  // Open Edit Modal
-  const handleEditProduct = (product) => {
-    setEditingProduct(product);
-    setIsProductModalOpen(true);
-  };
-
-  // ✅ SAVE PRODUCT (Add/Update)
-  const handleSaveProduct = (formData) => {
-    if (editingProduct) {
-      // ✅ Update existing
-      setProducts(products.map(p => 
-        p.id === editingProduct.id 
-          ? { ...p, ...formData, id: p.id }
-          : p
-      ));
-      alert("✅ Product updated successfully!");
-    } else {
-      // ✅ Add new
-      const newProduct = {
-        id: Date.now(),
-        ...formData
-      };
-      setProducts([...products, newProduct]);
-      alert("✅ Product added successfully!");
-    }
-    setIsProductModalOpen(false);
-  };
-
-  // Open Delete Modal
-  const handleDeleteProduct = (product) => {
-    setDeletingProduct(product);
-    setIsDeleteModalOpen(true);
-  };
-
-  // ✅ CONFIRM DELETE
-  const confirmDelete = () => {
-    setProducts(products.filter(p => p.id !== deletingProduct.id));
-    alert("✅ Product deleted successfully!");
-    setIsDeleteModalOpen(false);
-  };
-
   return (
     <>
       <section className="admin-section">
@@ -140,25 +274,25 @@ function AdminDashboard() {
                 <h3>Admin Panel</h3>
               </div>
               <nav className="admin-menu">
-                <button 
+                <button
                   className={`menu-item ${activeSection === "dashboard" ? "active" : ""}`}
                   onClick={() => setActiveSection("dashboard")}
                 >
                   <FaChartLine /> Dashboard
                 </button>
-                <button 
+                <button
                   className={`menu-item ${activeSection === "products" ? "active" : ""}`}
                   onClick={() => setActiveSection("products")}
                 >
                   <FaBox /> Products
                 </button>
-                <button 
+                <button
                   className={`menu-item ${activeSection === "orders" ? "active" : ""}`}
                   onClick={() => setActiveSection("orders")}
                 >
                   <FaClipboardList /> Orders
                 </button>
-                <button 
+                <button
                   className={`menu-item ${activeSection === "users" ? "active" : ""}`}
                   onClick={() => setActiveSection("users")}
                 >
@@ -170,7 +304,7 @@ function AdminDashboard() {
               </nav>
             </div>
 
-            <div className="admin-content">              
+            <div className="admin-content">
               {/* Dashboard */}
               {activeSection === "dashboard" && (
                 <>
@@ -224,68 +358,84 @@ function AdminDashboard() {
                 </>
               )}
 
-              {/* ✅ Products Section with CRUD */}
+              {/* ✅ Products Section */}
               {activeSection === "products" && (
                 <div className="admin-table-wrapper">
                   <div className="table-header">
                     <h4>Products ({products.length})</h4>
-                    <button className="btn-add" onClick={handleAddProduct}>
+                    <button className="btn-add" onClick={handleAddClick}>
                       <FaPlus /> Add Product
                     </button>
                   </div>
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Image</th>
-                        <th>Product Name</th>
-                        <th>Price</th>
-                        <th>Stock</th>
-                        <th>Category</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {products.map((product) => (
-                        <tr key={product.id}>
-                          <td>
-                            <img 
-                              src={product.image} 
-                              alt={product.name} 
-                              className="product-thumb" 
-                            />
-                          </td>
-                          <td>{product.name}</td>
-                          <td>${product.price.toFixed(2)}</td>
-                          <td>{product.stock}</td>
-                          <td>{product.category}</td>
-                          <td>
-                            <span className={`badge-${
-                              product.stock > 10 ? "success" : 
-                              product.stock > 0 ? "warning" : "danger"
-                            }`}>
-                              {product.stock > 10 ? "In Stock" : 
-                               product.stock > 0 ? "Low Stock" : "Out of Stock"}
-                            </span>
-                          </td>
-                          <td className="action-buttons">
-                            <button 
-                              className="btn-action edit"
-                              onClick={() => handleEditProduct(product)}
-                            >
-                              <FaEdit />
-                            </button>
-                            <button 
-                              className="btn-action delete"
-                              onClick={() => handleDeleteProduct(product)}
-                            >
-                              <FaTrash />
-                            </button>
-                          </td>
+                  {loading ? (
+                    <div className="loading">Loading products...</div>
+                  ) : (
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Image</th>
+                          <th>Product Name</th>
+                          <th>Price</th>
+                          <th>Stock</th>
+                          <th>Category</th>
+                          <th>Status</th>
+                          <th>Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {products.length === 0 ? (
+                          <tr>
+                            <td colSpan="7" className="no-data">No products found</td>
+                          </tr>
+                        ) : (
+                          products.map((product) => (
+                            <tr key={product._id}>
+                              <td>
+                                {product.images && product.images.length > 0 ? (
+                                  <img
+                                    src={`http://localhost:5000${product.images[0]}`}
+                                    alt={product.name}
+                                    className="product-thumb"
+                                    // onError={(e) => {
+                                    //   e.target.src = 'https://via.placeholder.com/50';
+                                    // }}
+                                  />
+                                ) : (
+                                  <div className="no-image">No Image</div>
+                                )}
+                              </td>
+                              <td>{product.name || 'N/A'}</td>
+                              <td>${(product.price || 0).toFixed(2)}</td>
+                              <td>{product.stock || 0}</td>
+                              <td>{product.category || 'N/A'}</td>
+                              <td>
+                                <span className={`badge-${(product.stock || 0) > 10 ? "success" :
+                                    (product.stock || 0) > 0 ? "warning" : "danger"
+                                  }`}>
+                                  {(product.stock || 0) > 10 ? "In Stock" :
+                                    (product.stock || 0) > 0 ? "Low Stock" : "Out of Stock"}
+                                </span>
+                              </td>
+                              <td className="action-buttons">
+                                <button
+                                  className="btn-action edit"
+                                  onClick={() => handleEditClick(product)}
+                                >
+                                  <FaEdit />
+                                </button>
+                                <button
+                                  className="btn-action delete"
+                                  onClick={() => handleDeleteClick(product)}
+                                >
+                                  <FaTrash />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               )}
 
@@ -380,10 +530,14 @@ function AdminDashboard() {
         </div>
       </section>
 
+      {/* ✅ ProductModal */}
       <ProductModal
-        key={editingProduct?.id || 'new'}
+        key={editingProduct?._id || 'new-product'}
         isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
+        onClose={() => {
+          setIsProductModalOpen(false);
+          setEditingProduct(null);
+        }}
         onSave={handleSaveProduct}
         product={editingProduct}
         isEditing={!!editingProduct}
@@ -391,7 +545,10 @@ function AdminDashboard() {
 
       <DeleteModal
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeletingProduct(null);
+        }}
         onConfirm={confirmDelete}
         productName={deletingProduct?.name}
       />

@@ -618,3 +618,157 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.image-preview-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.05);
+  transition: border-color 0.3s;
+  background: #111;
+}
+
+.image-preview-item:hover {
+  border-color: rgba(255, 193, 7, 0.3);
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Remove button on image */
+.remove-image-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.8);
+  border: none;
+  color: #ff4757;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  transition: all 0.3s;
+  opacity: 0;
+}
+
+.image-preview-item:hover .remove-image-btn {
+  opacity: 1;
+}
+
+.remove-image-btn:hover {
+  background: #ff4757;
+  color: #fff;
+  transform: scale(1.1);
+}
+
+/* Remove All button */
+.remove-all-btn {
+  grid-column: 1 / -1;
+  background: rgba(255, 71, 87, 0.15);
+  border: 1px solid rgba(255, 71, 87, 0.2);
+  color: #ff4757;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.remove-all-btn:hover {
+  background: rgba(255, 71, 87, 0.25);
+  border-color: #ff4757;
+}
+
+/* Existing images badge */
+.image-preview-item.existing {
+  border-color: rgba(107, 203, 119, 0.3);
+}
+
+.existing-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: rgba(40, 167, 69, 0.9);
+  color: #fff;
+  font-size: 0.6rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.existing-images {
+  margin-top: 10px;
+}
+
+.existing-images label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* Helper text */
+.helper-text {
+  display: block;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+/* ============================================
+   PRODUCT IMAGE IN TABLE
+   ============================================ */
+.product-thumb {
+  width: 45px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #111;
+}
+
+/* Multiple images in table cell */
+.product-images-cell {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.product-images-cell .product-thumb {
+  width: 35px;
+  height: 35px;
+}
+
+.product-images-cell .image-count {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  padding-left: 4px;
+}

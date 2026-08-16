@@ -4,10 +4,10 @@ import "../css/AdminDashboard.css";
 
 function ProductModal({ isOpen, onClose, onSave, product, isEditing }) {
   const [errors, setErrors] = useState({});
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
+  const [imageFiles, setImageFiles] = useState([]); // ✅ Array of files
+  const [imagePreviews, setImagePreviews] = useState([]); // ✅ Array of previews
 
-  // ✅ Lazy initialization - form data populate
+  // Lazy initialization - form data populate
   const [formData, setFormData] = useState(() => {
     if (product && isEditing) {
       return {
@@ -15,7 +15,6 @@ function ProductModal({ isOpen, onClose, onSave, product, isEditing }) {
         description: product.description || "",
         price: product.price || "",
         stock: product.stock || "",
-        image: product.image || "",
         category: product.category || "",
       };
     }
@@ -24,49 +23,68 @@ function ProductModal({ isOpen, onClose, onSave, product, isEditing }) {
       description: "",
       price: "",
       stock: "",
-      image: "",
       category: "",
     };
   });
 
-  // ✅ Handle image file selection
+  // ✅ Handle multiple image selection
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validate file type
-      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/gif'];
-      if (!validTypes.includes(file.type)) {
-        setErrors({ ...errors, image: "Please upload a valid image (JPEG, PNG, JPG, WEBP, GIF)" });
-        return;
-      }
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors({ ...errors, image: "Image size must be less than 5MB" });
-        return;
-      }
-
-      setImageFile(file);
-
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-
-      // Clear error
-      if (errors.image) {
-        setErrors({ ...errors, image: "" });
-      }
+    // Validate each file
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/gif'];
+    const invalidFiles = files.filter(file => !validTypes.includes(file.type));
+    
+    if (invalidFiles.length > 0) {
+      setErrors({ ...errors, image: "Please upload valid images (JPEG, PNG, JPG, WEBP, GIF)" });
+      return;
     }
+
+    // Check file size (max 5MB each)
+    const largeFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+    if (largeFiles.length > 0) {
+      setErrors({ ...errors, image: "Each image must be less than 5MB" });
+      return;
+    }
+
+    // Max 10 images
+    if (imageFiles.length + files.length > 10) {
+      setErrors({ ...errors, image: "Maximum 10 images allowed" });
+      return;
+    }
+
+    // Add new files
+    setImageFiles(prev => [...prev, ...files]);
+
+    // Create previews
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...newPreviews]);
+
+    // Clear error
+    if (errors.image) {
+      setErrors({ ...errors, image: "" });
+    }
+
+    // Reset input
+    e.target.value = null;
   };
 
-  // ✅ Remove selected image
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview("");
-    setFormData({ ...formData, image: "" });
+  // ✅ Remove single image
+  const handleRemoveImage = (index) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => {
+      // Revoke URL to avoid memory leaks
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  // ✅ Remove all images
+  const handleRemoveAllImages = () => {
+    imagePreviews.forEach(url => URL.revokeObjectURL(url));
+    setImageFiles([]);
+    setImagePreviews([]);
   };
 
   // ✅ Input change handle
@@ -91,9 +109,9 @@ function ProductModal({ isOpen, onClose, onSave, product, isEditing }) {
     if (formData.stock && isNaN(formData.stock)) newErrors.stock = "Stock must be a number";
     if (!formData.category.trim()) newErrors.category = "Category is required";
 
-    // ✅ Image validation - required for new product
-    if (!isEditing && !imageFile && !formData.image) {
-      newErrors.image = "Product image is required";
+    // ✅ Multiple images validation - required for new product
+    if (!isEditing && imageFiles.length === 0) {
+      newErrors.image = "At least one product image is required";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -101,19 +119,15 @@ function ProductModal({ isOpen, onClose, onSave, product, isEditing }) {
       return;
     }
 
-    //Prepare data for save
+    // ✅ Prepare data
     const saveData = {
       ...formData,
       price: parseFloat(formData.price),
       stock: parseInt(formData.stock),
     };
 
-    if (imageFile) {
-      onSave(saveData);
-    } else {
-      onSave(saveData);
-    }
-
+    // ✅ Send to parent with image files
+    onSave(saveData, imageFiles);
     onClose();
   };
 
@@ -201,49 +215,85 @@ function ProductModal({ isOpen, onClose, onSave, product, isEditing }) {
               className={errors.category ? "error" : ""}
             >
               <option value="">Select Category</option>
-              <option value="Electronics">📱 Electronics</option>
-              <option value="Clothing">👕 Clothing</option>
-              <option value="Books">📚 Books</option>
-              <option value="Food">🍔 Food</option>
-              <option value="Other">📦 Other</option>
+              <option value="Gents Shirts">Gents Shirts</option>
+              <option value="Gents Outfits">Gents Outfits</option>
+              <option value="Ladies Topwear">Ladies Topwear</option>
+              <option value="adies Outfits">Ladies Outfits</option>
+              <option value="Gents Jacket">Gents Jacket</option>
+              <option value="Ladies Jacket">Ladies Jacket</option>
+              <option value="Ladies Jeans">Ladies Jeans</option>
+              <option value="Gents Jeans">Gents Jeans</option>
+              <option value="Gents Shoes">Gents Shoes</option>
+              <option value="Ladies Shoes">Ladies Shoes</option>
+              <option value="Gents Watches">Gents Watches</option>
+              <option value="Ladies Watches">Ladies Watches</option>
+              
+
             </select>
             {errors.category && <span className="error-text">{errors.category}</span>}
           </div>
 
-          {/* ✅ IMAGE UPLOAD - File Input */}
+          {/* ✅ MULTIPLE IMAGE UPLOAD */}
           <div className="form-group">
-            <label>Product Image {!isEditing && "*"}</label>
+            <label>Product Images {!isEditing && "*"}</label>
             <div className="file-upload-wrapper">
               <input
                 type="file"
                 accept="image/*"
+                multiple // ✅ Multiple attribute
                 onChange={handleImageChange}
                 className={errors.image ? "error" : ""}
               />
-              <span className="file-upload-btn">📁 Choose File</span>  {/* ✅ YELLOW BUTTON */}
+              <span className="file-upload-btn">📁 Choose Images</span>
               <span className="file-name">
-                {imageFile ? imageFile.name : "No file selected..."}
+                {imageFiles.length > 0 
+                  ? `${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''} selected` 
+                  : "No files selected..."}
               </span>
             </div>
+            <small className="helper-text">Max 10 images • Each max 5MB • JPG, PNG, WEBP, GIF</small>
             {errors.image && <span className="error-text">{errors.image}</span>}
           </div>
 
-          {/* ✅ IMAGE PREVIEW */}
-          {(imagePreview || formData.image) && (
-            <div className="image-preview">
-              <img
-                src={imagePreview || formData.image}
-                alt="Product preview"
-              />
-              {imagePreview && (
+          {/* ✅ IMAGE PREVIEW GRID */}
+          {imagePreviews.length > 0 && (
+            <div className="image-preview-grid">
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="image-preview-item">
+                  <img src={preview} alt={`Product ${index + 1}`} />
+                  <button
+                    type="button"
+                    className="remove-image-btn"
+                    onClick={() => handleRemoveImage(index)}
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              ))}
+              {imageFiles.length > 0 && (
                 <button
                   type="button"
-                  className="remove-image"
-                  onClick={handleRemoveImage}
+                  className="remove-all-btn"
+                  onClick={handleRemoveAllImages}
                 >
-                  <FaTrash />
+                  <FaTrash /> Remove All
                 </button>
               )}
+            </div>
+          )}
+
+          {/* ✅ Existing images from product (edit mode) */}
+          {isEditing && product?.images && product.images.length > 0 && imageFiles.length === 0 && (
+            <div className="existing-images">
+              <label>Current Images:</label>
+              <div className="image-preview-grid">
+                {product.images.map((img, index) => (
+                  <div key={index} className="image-preview-item existing">
+                    <img src={img} alt={`Product ${index + 1}`} />
+                    <span className="existing-badge">Existing</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

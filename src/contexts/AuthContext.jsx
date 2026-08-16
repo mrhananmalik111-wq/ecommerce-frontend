@@ -1,10 +1,12 @@
 // contexts/AuthContext.jsx
 import { createContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() =>{
+ const navigate = useNavigate();
+  const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem('user');
     return storedUser ? JSON.parse(storedUser) : null;
   });
@@ -19,7 +21,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    
+
     if (token && userData) {
       try {
         JSON.parse(userData); // Validate JSON
@@ -34,16 +36,16 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch('http://localhost:5000/api/users/loginUser', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         // Store user data
         const userData = {
@@ -62,16 +64,22 @@ export const AuthProvider = ({ children }) => {
           },
           joinDate: data.data.createdAt || new Date().toLocaleDateString()
         };
-        
+
         setUser(userData);
         setIsAuthenticated(true);
         localStorage.setItem('token', data.data.token);
         localStorage.setItem('user', JSON.stringify(userData));
-        
+
         return { success: true, user: userData };
       } else {
-        setError(data.message || 'Login failed');
-        return { success: false, error: data.message };
+        // ✅ Handle specific error cases
+        if (data.message?.includes('expired') || data.message?.includes('token')) {
+          alert('Your session has expired. Please login again.');
+          navigate('/login');
+        } else {
+          setError(data.message || 'Login failed');
+          return { success: false, error: data.message };
+        }
       }
     } catch (error) {
       setError('Something went wrong. Please try again.');
@@ -81,20 +89,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+
   // ✅ Register - uses your backend endpoint
   const register = async (userData) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch('http://localhost:5000/api/users/registerUser', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         const newUser = {
           _id: data.data._id,
@@ -112,12 +121,12 @@ export const AuthProvider = ({ children }) => {
           },
           joinDate: data.data.createdAt || new Date().toLocaleDateString()
         };
-        
+
         setUser(newUser);
         setIsAuthenticated(true);
         localStorage.setItem('token', data.data.token);
         localStorage.setItem('user', JSON.stringify(newUser));
-        
+
         return { success: true, user: newUser };
       } else {
         setError(data.message || 'Registration failed');
@@ -133,8 +142,8 @@ export const AuthProvider = ({ children }) => {
 
   // ✅ Logout
   const logout = () => {
-   const isConfirm = window.confirm('Are you sure you want to logout?');
-   if(!isConfirm) return;
+    const isConfirm = window.confirm('Are you sure you want to logout?');
+    if (!isConfirm) return;
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('token');
@@ -153,9 +162,9 @@ export const AuthProvider = ({ children }) => {
         },
         body: JSON.stringify(updatedData)
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         const updatedUser = { ...user, ...updatedData };
         setUser(updatedUser);
