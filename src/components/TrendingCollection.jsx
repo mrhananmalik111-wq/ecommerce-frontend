@@ -1,68 +1,108 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
-import { FaHeart, FaShoppingCart, FaStar } from "react-icons/fa";
+import {
+  FaHeart,
+  FaShoppingCart,
+  FaStar,
+} from "react-icons/fa";
+import { CATEGORIES } from "../constants/categories";
 import "../css/TrendingCollection.css";
 
-const products = [
-  {
-    id: 1,
-    name: "Black Hoodie",
-    price: "Rs 4,999",
-    category: "Hoodies",
-    image: "https://lachicpick.in/wp-content/uploads/2023/01/683-1.png",
-  },
-  {
-    id: 2,
-    name: "White T-Shirt",
-    price: "Rs 2,299",
-    category: "T-Shirts",
-    image: "https://cdn.pixabay.com/photo/2024/02/06/18/10/ai-generated-8557635_1280.jpg",
-  },
-  {
-    id: 3,
-    name: "Blue Jeans",
-    price: "Rs 3,799",
-    category: "Jeans",
-    image: "https://i5.walmartimages.com/seo/Black-Friday-Clearance-Sale-Deal-Aloohaidyvio-No-Boundaries-Wide-Leg-Jeans-Woman-Stretchy-Baggy-High-Waisted-Trendy-Straight-Casual-Denim-Pants_0d8b9627-c9bc-4a79-ac5f-156b56c7f1f7.d2620930f0ebe9e0b8dcfb486d94a05d.jpeg",
-  },
-  {
-    id: 4,
-    name: "Bomber Jacket",
-    price: "Rs 6,999",
-    category: "Jackets",
-    image: "https://hips.hearstapps.com/hmg-prod/images/bomber-jackets-women-otherstories-6629313bedc80.png?crop=0.575xw:0.690xh;0.214xw,0.136xh&resize=640:*",
-  },
-  {
-    id: 5,
-    name: "Grey Hoodie",
-    price: "Rs 5,299",
-    category: "Hoodies",
-    image: "https://i.pinimg.com/originals/5b/92/f8/5b92f843a613f9188d355fb5e12e1115.jpg",
-  },
-  {
-    id: 6,
-    name: "Oversized Tee",
-    price: "Rs 2,999",
-    category: "T-Shirts",
-    image: "https://i.pinimg.com/originals/b9/79/d7/b979d75c371fda486b64abbf019f6b4c.jpg",
-  },
-];
-
 function TrendingCollection() {
-
+  const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState("All");
+  const [loading, setLoading] = useState(true);
 
+  // ============================================
+  // FETCH PRODUCTS
+  // ============================================
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/api/getAllProducts"
+        );
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        console.log("📦 Trending API Response:", data);
+
+        // API se products
+        setProducts(data.products || []);
+      } catch (error) {
+        console.error("❌ Failed to fetch products:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // ============================================
+  // FILTER PRODUCTS
+  // ============================================
   const filteredProducts =
     filter === "All"
       ? products
-      : products.filter((item) => item.category === filter);
+      : products.filter((product) => {
+          const productCategory = String(
+            product.category
+          ).trim();
+
+          // Category ID ko find karo
+          const category = CATEGORIES.find(
+            (cat) =>
+              String(cat.id) === productCategory
+          );
+
+          // Example:
+          // product.category = "7"
+          // category.name = "Ladies Jeans"
+
+          if (!category) {
+            return false;
+          }
+
+          // "Ladies Jeans" -> "jeans"
+          // "Gents Jeans" -> "jeans"
+
+          return category.name
+            .toLowerCase()
+            .includes(filter.toLowerCase());
+        });
+
+  console.log("🔎 Current Filter:", filter);
+  console.log("🛍️ All Products:", products);
+  console.log("✅ Filtered Products:", filteredProducts);
+
+  // ============================================
+  // FILTER BUTTONS
+  // ============================================
+  const filterButtons = [
+    "All",
+    "Shirts",
+    "Outfits",
+    "Jacket",
+    "Jeans",
+    "Shoes",
+    "Watches",
+  ];
 
   return (
     <Container className="my-5">
 
+      {/* Heading */}
       <div className="d-flex justify-content-between align-items-center mb-4">
 
-        <h2 className="text-white">Trending Collection</h2>
+        <h2 className="text-white">
+          Trending Collection
+        </h2>
 
         <Button variant="outline-warning">
           View All
@@ -70,10 +110,10 @@ function TrendingCollection() {
 
       </div>
 
+      {/* Filter Buttons */}
       <div className="filter-buttons mb-4">
 
-        {["All", "Hoodies", "T-Shirts", "Jeans", "Jackets"].map((item) => (
-
+        {filterButtons.map((item) => (
           <Button
             key={item}
             className={`me-2 mb-2 ${
@@ -84,55 +124,105 @@ function TrendingCollection() {
           >
             {item}
           </Button>
-
         ))}
 
       </div>
 
-      <Row className="g-4">
+      {/* Loading */}
+      {loading && (
+        <div className="text-center text-white">
+          <h4>Loading products...</h4>
+        </div>
+      )}
 
-        {filteredProducts.map((item) => (
+      {/* No Products */}
+      {!loading && filteredProducts.length === 0 && (
+        <div className="text-center text-white">
+          <h4>No products found.</h4>
+        </div>
+      )}
 
-          <Col lg={3} md={6} sm={6} xs={12} key={item.id}>
+      {/* Products */}
+      {!loading && filteredProducts.length > 0 && (
+        <Row className="g-4">
 
-            <Card className="product-card border-0">
+          {filteredProducts.map((item) => (
+            <Col
+              lg={3}
+              md={6}
+              sm={6}
+              xs={12}
+              key={item._id}
+            >
 
-              <div className="product-image">
+              <Card className="product-card border-0">
 
-                <FaHeart className="wishlist-icon" />
+                {/* Image */}
+                <div className="product-image">
 
-                <Card.Img src={item.image} />
+                  <FaHeart className="wishlist-icon" />
 
-              </div>
+                  {item.images?.length > 0 ? (
+                    <Card.Img
+                      src={`http://localhost:5000${item.images[0]}`}
+                      alt={item.name}
+                    />
+                  ) : (
+                    <div className="no-image">
+                      No Image
+                    </div>
+                  )}
 
-              <Card.Body>
-
-                <Card.Title>{item.name}</Card.Title>
-
-                <div className="rating">
-                  <FaStar />
-                  <FaStar />
-                  <FaStar />
-                  <FaStar />
-                  <FaStar />
                 </div>
 
-                <h5>{item.price}</h5>
+                {/* Body */}
+                <Card.Body>
 
-                <Button variant="warning" className="w-100 mt-3">
-                  <FaShoppingCart className="me-2" />
-                  Add To Cart
-                </Button>
+                  <Card.Title>
+                    {item.name}
+                  </Card.Title>
 
-              </Card.Body>
+                  {/* Rating */}
+                  <div className="rating">
+                    <FaStar />
+                    <FaStar />
+                    <FaStar />
+                    <FaStar />
+                    <FaStar />
+                  </div>
 
-            </Card>
+                  {/* Price */}
+                  <h5>
+                    ${item.price}
+                  </h5>
 
-          </Col>
+                  {/* Category */}
+                  <p>
+                    {CATEGORIES.find(
+                      (cat) =>
+                        String(cat.id) ===
+                        String(item.category)
+                    )?.name || item.category}
+                  </p>
 
-        ))}
+                  {/* Cart */}
+                  <Button
+                    variant="warning"
+                    className="w-100 mt-3"
+                  >
+                    <FaShoppingCart className="me-2" />
+                    Add To Cart
+                  </Button>
 
-      </Row>
+                </Card.Body>
+
+              </Card>
+
+            </Col>
+          ))}
+
+        </Row>
+      )}
 
     </Container>
   );

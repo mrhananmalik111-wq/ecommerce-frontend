@@ -19,7 +19,7 @@ import {
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import "../css/Navbar.css";
-
+import { CATEGORIES } from "../constants/categories";
 function AppNavbar() {
   const [show, setShow] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -100,19 +100,9 @@ function AppNavbar() {
               <Nav.Link as={Link} to="/shop">Shop</Nav.Link>
 
               <NavDropdown title="Categories" className="category-dropdown">
-                <NavDropdown.Item as={Link} to="/category/fashion">
-                  <i className="fas fa-tshirt me-2"></i>Fashion
-                </NavDropdown.Item>
-                <NavDropdown.Item as={Link} to="/category/shoes">
-                  <i className="fas fa-shoe-prints me-2"></i>Shoes
-                </NavDropdown.Item>
-                <NavDropdown.Item as={Link} to="/category/mobiles">
-                  <i className="fas fa-mobile-alt me-2"></i>Mobiles
-                </NavDropdown.Item>
-                <NavDropdown.Divider />
-                <NavDropdown.Item as={Link} to="/category/all">
-                  <i className="fas fa-tags me-2"></i>All Categories
-                </NavDropdown.Item>
+                {CATEGORIES.map((category)=> (
+                  <NavDropdown.Item  key={category.id} as={Link} to={`/category/${category.id}`}>{category.name}</NavDropdown.Item>
+                ))}
               </NavDropdown>
 
               <Nav.Link as={Link} to="/about">About</Nav.Link>

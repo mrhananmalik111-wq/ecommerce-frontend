@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FaTimes, FaTrash } from "react-icons/fa";
 import "../css/AdminDashboard.css";
+import { CATEGORIES } from "../constants/categories";
 
 function ProductModal({ isOpen, onClose, onSave, product, isEditing }) {
   const [errors, setErrors] = useState({});
@@ -35,7 +36,7 @@ function ProductModal({ isOpen, onClose, onSave, product, isEditing }) {
     // Validate each file
     const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/gif'];
     const invalidFiles = files.filter(file => !validTypes.includes(file.type));
-    
+
     if (invalidFiles.length > 0) {
       setErrors({ ...errors, image: "Please upload valid images (JPEG, PNG, JPG, WEBP, GIF)" });
       return;
@@ -214,20 +215,11 @@ function ProductModal({ isOpen, onClose, onSave, product, isEditing }) {
               onChange={handleChange}
               className={errors.category ? "error" : ""}
             >
-              <option value="">Select Category</option>
-              <option value="Gents Shirts">Gents Shirts</option>
-              <option value="Gents Outfits">Gents Outfits</option>
-              <option value="Ladies Topwear">Ladies Topwear</option>
-              <option value="adies Outfits">Ladies Outfits</option>
-              <option value="Gents Jacket">Gents Jacket</option>
-              <option value="Ladies Jacket">Ladies Jacket</option>
-              <option value="Ladies Jeans">Ladies Jeans</option>
-              <option value="Gents Jeans">Gents Jeans</option>
-              <option value="Gents Shoes">Gents Shoes</option>
-              <option value="Ladies Shoes">Ladies Shoes</option>
-              <option value="Gents Watches">Gents Watches</option>
-              <option value="Ladies Watches">Ladies Watches</option>
-              
+              {CATEGORIES.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
 
             </select>
             {errors.category && <span className="error-text">{errors.category}</span>}
@@ -246,8 +238,8 @@ function ProductModal({ isOpen, onClose, onSave, product, isEditing }) {
               />
               <span className="file-upload-btn">📁 Choose Images</span>
               <span className="file-name">
-                {imageFiles.length > 0 
-                  ? `${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''} selected` 
+                {imageFiles.length > 0
+                  ? `${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''} selected`
                   : "No files selected..."}
               </span>
             </div>

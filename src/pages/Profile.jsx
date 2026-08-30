@@ -8,55 +8,148 @@ import {
 } from "react-icons/fa";
 import "../css/Profile.css";
 
+// Helper function to check token expiration
+const isTokenExpired = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch (error) {
+    return true;
+  }
+};
+
 function Profile() {
-  const { user, logout, updateUser, loading } = useAuth();  // Get real user
+  const { user, logout, updateUser, loading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  // const [isActive, setIsActive] = useState(false);
   const [formData, setFormData] = useState(() => {
-    return user || {}
+    return user || {}; // Fixed: return user or empty object
   });
   const [activeTab, setActiveTab] = useState("profile");
   const [orders, setOrders] = useState([]);
   const [wishlist, setWishlist] = useState([]);
 
-
+  // Fetch user data on component mount and when user changes
   useEffect(() => {
-    if (user) {
-
-      const fetchUserOrders = async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch('http://localhost:5000/api/users/orders', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const data = await response.json();
-          if (data.success) {
-            setOrders(data.data || []);
+    const fetchUserData = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.log('No token found, redirecting to login');
+        logout();
+        window.location.href = '/login';
+        return;
+      }
+      
+      if (isTokenExpired(token)) {
+        console.log('Token expired, redirecting to login');
+        alert('Your session has expired. Please login again.');
+        logout();
+        window.location.href = '/login';
+        return;
+      }
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/users/getMe', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            throw new Error('Authentication failed');
           }
-        } catch (error) {
-          console.error('Error fetching orders:', error);
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+          setFormData(data.data);
+        } else {
+          throw new Error(data.message || 'Failed to fetch user data');
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        if (error.message === 'Authentication failed') {
+          alert('Please login again.');
+          logout();
+          window.location.href = '/login';
         }
       }
-
-      const fetchUserWishlist = async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch('http://localhost:5000/api/users/wishlist', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const data = await response.json();
-          if (data.success) {
-            setWishlist(data.data || []);
-          }
-        } catch (error) {
-          console.error('Error fetching wishlist:', error);
-        }
-      }
-
-      fetchUserOrders();
-      fetchUserWishlist();
+    };
+    
+    if (!user) {
+      fetchUserData();
+    } else {
+      setFormData(user);
     }
-  }, [user]);
+  }, [user, logout]);
 
+  // Fetch orders and wishlist when user is available
+  useEffect(() => {
+    if (!user) return;
+
+    const token = localStorage.getItem('token');
+    
+    // Check token validity before making requests
+    if (!token || isTokenExpired(token)) {
+      if (isTokenExpired(token)) {
+        alert('Your session has expired. Please login again.');
+      }
+      logout();
+      window.location.href = '/login';
+      return;
+    }
+
+    const fetchUserOrders = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/users/orders', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+          setOrders(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        // If unauthorized, redirect to login
+        if (error.message.includes('401') || error.message.includes('403')) {
+          logout();
+          window.location.href = '/login';
+        }
+      }
+    };
+
+    const fetchUserWishlist = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/users/wishlist', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+          setWishlist(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching wishlist:', error);
+        if (error.message.includes('401') || error.message.includes('403')) {
+          logout();
+          window.location.href = '/login';
+        }
+      }
+    };
+
+    fetchUserOrders();
+    fetchUserWishlist();
+  }, [user, logout]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -76,6 +169,7 @@ function Profile() {
       }
     });
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -99,12 +193,10 @@ function Profile() {
     }
   };
 
-  // ✅ Handle logout
+  // Handle logout
   const handleLogout = () => {
     logout();
-    if(!user){
-    window.location.href = '/';
-    }
+    // The redirect will happen automatically when user state changes
   };
 
   // Loading state
@@ -126,7 +218,6 @@ function Profile() {
     <section className="profile-section">
       <div className="container">
         <div className="profile-wrapper">
-
           {/* Sidebar */}
           <div className="profile-sidebar">
             <div className="profile-avatar">

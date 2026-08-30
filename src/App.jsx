@@ -11,6 +11,7 @@ import Login from './Auth/Login';
 import Signup from './Auth/Signup';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import CategoryPage from './pages/CategoryPage';
 
 // ============================================
 // ✅ Protected Route Component - FIXED
@@ -52,6 +53,7 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/category/:categoryId" element={<CategoryPage />} />
 
           {/* Protected Routes - Only once each */}
           <Route 
